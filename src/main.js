@@ -1,11 +1,11 @@
 import Cycle from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
-const {div, label, input, hr, ul, li, a} = require('hyperscript-helpers')(h);
+const {div, label, input, hr, ul, li, a, img} = require('hyperscript-helpers')(h);
 
 function main(responses) {
-  const GITHUB_SEARCH_API = 'https://api.github.com/search/repositories?q=';
-
+  //const GITHUB_SEARCH_API = 'https://api.github.com/search/repositories?q=';
+  const GITHUB_SEARCH_API = 'https://www.googleapis.com/books/v1/volumes?q=';
   // Requests for Github repositories happen when the input field changes,
   // debounced by 500ms, ignoring empty input field.
   const searchRequest$ = responses.DOM.select('.field').events('input')
@@ -32,7 +32,13 @@ function main(responses) {
         hr(),
         ul({className: 'search-results'}, results.map(result =>
           li({className: 'search-result'}, [
-            a({href: result.html_url}, result.name)
+              (() =>
+               //console.log(result)
+               hr())(),
+           //img({src: result.volumeInfo.imageLinks.smallThumbnail}),
+            label({className: 'label'}, result.volumeInfo.title)
+            //img({src: result.owner.avatar_url, style: {'width': '40px', 'height': '40px'}}),
+            // a({href: result.html_url}, result.name)
           ])
         ))
       ])
