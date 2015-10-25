@@ -11,6 +11,7 @@
     "hyperscript-helpers": "1.x.x"
   },
   "devDependencies": {
+    "@cycle/jsonp": "^3.0.0",
     "babel": "5.6.x",
     "babelify": "6.1.x",
     "beefy": "^2.1.5",

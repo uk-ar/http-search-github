@@ -1,11 +1,21 @@
 import Cycle from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
+import {makeJSONPDriver} from '@cycle/jsonp';
+
 const {div, label, input, hr, ul, li, a, img} = require('hyperscript-helpers')(h);
+
+function log(thing){
+    console.log(thing);
+    return thing;
+}
 
 function main(responses) {
   //const GITHUB_SEARCH_API = 'https://api.github.com/search/repositories?q=';
-  const GITHUB_SEARCH_API = 'https://www.googleapis.com/books/v1/volumes?q=';
+  //google books api cannot retreive isbn...
+    const GITHUB_SEARCH_API = 'https://www.googleapis.com/books/v1/volumes?q=';
+
+    //https://app.rakuten.co.jp/services/api/BooksBook/Search/20130522?applicationId=1088506385229803383&booksGenreId=001004008&sort=%2BitemPrice&formatVersion=2&title=%E5%A4%AA%E9%99%BD
   // Requests for Github repositories happen when the input field changes,
   // debounced by 500ms, ignoring empty input field.
   const searchRequest$ = responses.DOM.select('.field').events('input')
@@ -20,39 +30,57 @@ function main(responses) {
     .map(() => 'http://www.google.com');
 
   // Convert the stream of HTTP responses to virtual DOM elements.
-  const vtree$ = responses.HTTP
+  const books$ = responses.HTTP
     .filter(res$ => res$.request.indexOf(GITHUB_SEARCH_API) === 0)
     .flatMap(x => x)
     .map(res => res.body.items)
-    .startWith([])
-    .map(results =>
+    .startWith([]);
+
+    //const booksWithLib$ = books$.map(results =>
+  const HELLO_URL = 'http://api.calil.jp/check?appkey=bc3d19b6abbd0af9a59d97fe8b22660f&systemid=Tokyo_Fuchu&format=json&isbn='
+    //4834000826
+  // let calilRequest$ = Cycle.Rx.Observable.just(HELLO_URL);
+  const calilRequest$ = books$.map(results =>
+    results[1]
+  ).map(log).map(q => HELLO_URL + encodeURI(q)).map(log);
+  // const booksWithLib$ = responses.JSONP
+  //   .filter(res$ => res$.request === HELLO_URL)
+  //   .mergeAll().map(log).subscribe()
+    //.mergeAll();//.subscribe();
+  // const booksWithLib$ = books$.map(results =>
+  //   results.map(result =>
+  //   results.map(result =>
+  //     console.log(result)
+  //   )
+  // ).subscribe()
+
+  const vtree$ = books$.map(results =>
       div([
         label({className: 'label'}, 'Search:'),
         input({className: 'field', attributes: {type: 'text'}}),
         hr(),
         ul({className: 'search-results'}, results.map(result =>
           li({className: 'search-result'}, [
-              (() =>
-               //console.log(result)
-               hr())(),
-           //img({src: result.volumeInfo.imageLinks.smallThumbnail}),
-            label({className: 'label'}, result.volumeInfo.title)
+             result.volumeInfo.imageLinks ? img({src: result.volumeInfo.imageLinks.thumbnail}) : null,
+              label({className: 'label'}, result.volumeInfo.title)
             //img({src: result.owner.avatar_url, style: {'width': '40px', 'height': '40px'}}),
             // a({href: result.html_url}, result.name)
           ])
         ))
       ])
-    );
+    )
 
-  const request$ = searchRequest$.merge(otherRequest$);
+  const request$ = searchRequest$//.merge(otherRequest$);
 
   return {
     DOM: vtree$,
-    HTTP: request$
+    HTTP: request$,
+    JSONP: calilRequest$
   };
 }
 
 Cycle.run(main, {
   DOM: makeDOMDriver('#main-container'),
-  HTTP: makeHTTPDriver()
+  HTTP: makeHTTPDriver(),
+  JSONP: makeJSONPDriver()
 });
