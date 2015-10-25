@@ -13,7 +13,8 @@ function log(thing){
 function main(responses) {
   //const GITHUB_SEARCH_API = 'https://api.github.com/search/repositories?q=';
   //google books api cannot retreive isbn...
-    const GITHUB_SEARCH_API = 'https://www.googleapis.com/books/v1/volumes?q=';
+    const GITHUB_SEARCH_API = 'https://app.rakuten.co.jp/services/api/BooksBook/Search/20130522?applicationId=1088506385229803383&booksGenreId=001&sort=%2BitemPrice&formatVersion=2&title=';
+    //https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522?format=json&booksGenreId=001&applicationId=1088506385229803383&keyword=%E3%81%90%E3%82%8A%E3%81%A8%E3%81%90%E3%82%89
 
     //https://app.rakuten.co.jp/services/api/BooksBook/Search/20130522?applicationId=1088506385229803383&booksGenreId=001004008&sort=%2BitemPrice&formatVersion=2&title=%E5%A4%AA%E9%99%BD
   // Requests for Github repositories happen when the input field changes,
