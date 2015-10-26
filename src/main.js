@@ -11,10 +11,9 @@ function log(thing){
 }
 
 function main(responses) {
-  //const GITHUB_SEARCH_API = 'https://api.github.com/search/repositories?q=';
   //google books api cannot retreive isbn...
-    const GITHUB_SEARCH_API = 'https://app.rakuten.co.jp/services/api/BooksBook/Search/20130522?applicationId=1088506385229803383&booksGenreId=001&sort=%2BitemPrice&formatVersion=2&title=';
-    //https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522?format=json&booksGenreId=001&applicationId=1088506385229803383&keyword=%E3%81%90%E3%82%8A%E3%81%A8%E3%81%90%E3%82%89
+  const GITHUB_SEARCH_API =
+        'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522?format=json&booksGenreId=000&applicationId=1088506385229803383&formatVersion=2&keyword='
 
     //https://app.rakuten.co.jp/services/api/BooksBook/Search/20130522?applicationId=1088506385229803383&booksGenreId=001004008&sort=%2BitemPrice&formatVersion=2&title=%E5%A4%AA%E9%99%BD
   // Requests for Github repositories happen when the input field changes,
@@ -24,29 +23,52 @@ function main(responses) {
     .map(ev => ev.target.value)
     .filter(query => query.length > 0)
     .map(q => GITHUB_SEARCH_API + encodeURI(q));
-
-  // Requests unrelated to the Github search. This is to demonstrate
-  // how filtering for the correct HTTP responses is necessary.
-  const otherRequest$ = Cycle.Rx.Observable.interval(1000).take(2)
-    .map(() => 'http://www.google.com');
+//.switch?
 
   // Convert the stream of HTTP responses to virtual DOM elements.
   const books$ = responses.HTTP
     .filter(res$ => res$.request.indexOf(GITHUB_SEARCH_API) === 0)
     .flatMap(x => x)
-    .map(res => res.body.items)
+    .map(res => res.body.Items)
     .startWith([]);
 
     //const booksWithLib$ = books$.map(results =>
-  const HELLO_URL = 'http://api.calil.jp/check?appkey=bc3d19b6abbd0af9a59d97fe8b22660f&systemid=Tokyo_Fuchu&format=json&isbn='
+  const LIBRARY_ID = "Tokyo_Fuchu"
+  const HELLO_URL = `http://api.calil.jp/check?appkey=bc3d19b6abbd0af9a59d97fe8b22660f&systemid=${LIBRARY_ID}&format=json&isbn=`
     //4834000826
   // let calilRequest$ = Cycle.Rx.Observable.just(HELLO_URL);
-  const calilRequest$ = books$.map(results =>
-    results[1]
-  ).map(log).map(q => HELLO_URL + encodeURI(q)).map(log);
-  // const booksWithLib$ = responses.JSONP
-  //   .filter(res$ => res$.request === HELLO_URL)
-  //   .mergeAll().map(log).subscribe()
+  const calilRequest$ = books$.filter(query => query.length > 0)
+  .map(results =>
+    //results[0].isbn
+    results.map(result => result.isbn)
+  ).map(q => HELLO_URL + encodeURI(q)).map(log);
+  const booksStatus$ = responses.JSONP
+    .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
+    .mergeAll().map(result => {
+      if(result.continue == 1){
+         throw 'continue';
+      }
+      return result.books
+    }).retryWhen(function(errors) {
+        return errors.delay(2000);
+    }).map(log);
+  // var source = Cycle.Rx.Observable.combineLatest(
+  //   source1,
+  //   source2,
+  //   function (s1, s2) { return s1 + ', ' + s2; }
+  // )
+    // .map(results => {
+    //         //return results//.map(result => {return result})
+    //         var keys=[];
+    //         for (var key in results){
+    //             // keys.push({isbn:key,
+    //             //         libkey:results[key].libkey,
+    //             //         reserveurl:results[key].reserveurl});
+    //             console.log(results[key][LIBRARY_ID].libkey["宮町"]);
+    //         };
+    //         return keys;
+    // })//.map(result => result)
+
     //.mergeAll();//.subscribe();
   // const booksWithLib$ = books$.map(results =>
   //   results.map(result =>
@@ -62,8 +84,8 @@ function main(responses) {
         hr(),
         ul({className: 'search-results'}, results.map(result =>
           li({className: 'search-result'}, [
-             result.volumeInfo.imageLinks ? img({src: result.volumeInfo.imageLinks.thumbnail}) : null,
-              label({className: 'label'}, result.volumeInfo.title)
+             result.largeImageUrl ? img({src: result.largeImageUrl}) : null,
+              label({className: 'label'}, result.title)
             //img({src: result.owner.avatar_url, style: {'width': '40px', 'height': '40px'}}),
             // a({href: result.html_url}, result.name)
           ])
