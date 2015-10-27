@@ -13,7 +13,7 @@ function log(thing){
 function main(responses) {
   //google books api cannot retreive isbn...
   const GITHUB_SEARCH_API =
-        'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522?format=json&booksGenreId=000&applicationId=1088506385229803383&formatVersion=2&keyword='
+        'https://app.rakuten.co.jp/services/api/BooksTotal/Search/20130522?format=json&booksGenreId=001&applicationId=1088506385229803383&formatVersion=2&keyword='
 
     //https://app.rakuten.co.jp/services/api/BooksBook/Search/20130522?applicationId=1088506385229803383&booksGenreId=001004008&sort=%2BitemPrice&formatVersion=2&title=%E5%A4%AA%E9%99%BD
   // Requests for Github repositories happen when the input field changes,
@@ -23,12 +23,11 @@ function main(responses) {
     .map(ev => ev.target.value)
     .filter(query => query.length > 0)
     .map(q => GITHUB_SEARCH_API + encodeURI(q));
-//.switch?
 
   // Convert the stream of HTTP responses to virtual DOM elements.
   const books$ = responses.HTTP
     .filter(res$ => res$.request.indexOf(GITHUB_SEARCH_API) === 0)
-    .flatMap(x => x)
+    .switch()
     .map(res => res.body.Items)
     .startWith([]);
 
@@ -46,12 +45,14 @@ function main(responses) {
     .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
     .mergeAll().map(result => {
       if(result.continue == 1){
-         throw 'continue';
+        throw 'continue';
+       //return Cycle.Rx.Observable.from([Cycle.Rx.Observable.throw(new Error('continue'))]);//result,
       }
-      return result.books
+      return result.books//Cycle.Rx.Observable.from([])
     }).retryWhen(function(errors) {
         return errors.delay(2000);
-    }).map(log);
+    }).map(log).subscribe();//;
+    // .mergeAll()map(log).subscribe();//;
   // var source = Cycle.Rx.Observable.combineLatest(
   //   source1,
   //   source2,
