@@ -2,6 +2,7 @@ import Cycle from '@cycle/core';
 import {h, makeDOMDriver} from '@cycle/dom';
 import {makeHTTPDriver} from '@cycle/http';
 import {makeJSONPDriver} from '@cycle/jsonp';
+import Rx from 'rx';
 
 const {div, label, input, hr, ul, li, a, img} = require('hyperscript-helpers')(h);
 
@@ -21,7 +22,7 @@ function main(responses) {
   const searchRequest$ = responses.DOM.select('.field').events('input')
     .debounce(500)
     .map(ev => ev.target.value)
-    .filter(query => query.length > 0)
+    .filter(query => query.length > 1)
     .map(q => GITHUB_SEARCH_API + encodeURI(q));
 
   // Convert the stream of HTTP responses to virtual DOM elements.
@@ -44,13 +45,14 @@ function main(responses) {
   const booksStatus$ = responses.JSONP
     .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
     .mergeAll().map(result => {
+      //throw 'continue';
       if(result.continue == 1){
-        throw 'continue';
+        throw result;
        //return Cycle.Rx.Observable.from([Cycle.Rx.Observable.throw(new Error('continue'))]);//result,
       }
       return result.books//Cycle.Rx.Observable.from([])
     }).retryWhen(function(errors) {
-        return errors.delay(2000);
+      return errors.map(log).delay(2000);
     }).map(log).subscribe();//;
     // .mergeAll()map(log).subscribe();//;
   // var source = Cycle.Rx.Observable.combineLatest(
