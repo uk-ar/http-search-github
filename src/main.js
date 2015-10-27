@@ -44,16 +44,18 @@ function main(responses) {
   ).map(q => HELLO_URL + encodeURI(q)).map(log);
   const booksStatus$ = responses.JSONP
     .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
-    .mergeAll().map(result => {
-      //throw 'continue';
-      if(result.continue == 1){
-        throw result;
+    .mergeAll().flatMap(result => {
+      if(result.continue == 0){
+        return [result]
        //return Cycle.Rx.Observable.from([Cycle.Rx.Observable.throw(new Error('continue'))]);//result,
       }
-      return result.books//Cycle.Rx.Observable.from([])
-    }).retryWhen(function(errors) {
-      return errors.map(log).delay(2000);
-    }).map(log).subscribe();//;
+      var resultNoRetry = Object.assign({}, result);
+      resultNoRetry.continue = 0
+      return [result,resultNoRetry]//Cycle.Rx.Observable.from([])
+    }).map(log).retry(5).map(log).subscribe();
+  //;.retryWhen(function(errors) {
+    //   return errors.map(log).delay(2000);
+    // })
     // .mergeAll()map(log).subscribe();//;
   // var source = Cycle.Rx.Observable.combineLatest(
   //   source1,
