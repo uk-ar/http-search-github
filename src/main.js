@@ -29,7 +29,10 @@ function main(responses) {
   const books$ = responses.HTTP
     .filter(res$ => res$.request.indexOf(GITHUB_SEARCH_API) === 0)
     .switch()
-    .map(res => res.body.Items)
+        .map(res => res.body.Items)
+        // .map(items => {
+        //   return items.filter(item => item.isbn !== undefined)
+        // }).map(log)
     .startWith([]);
 
     //const booksWithLib$ = books$.map(results =>
@@ -41,22 +44,29 @@ function main(responses) {
   .map(results =>
     //results[0].isbn
     results.map(result => result.isbn)
-  ).map(q => HELLO_URL + encodeURI(q)).map(log);
+      ).map(q => HELLO_URL + encodeURI(q)).map(log);
+
   const booksStatus$ = responses.JSONP
     .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
-    .mergeAll().flatMap(result => {
-      if(result.continue == 0){
-        return [result]
-       //return Cycle.Rx.Observable.from([Cycle.Rx.Observable.throw(new Error('continue'))]);//result,
+        .switch().flatMap(result => {
+      if(result.continue == 1){
+        return [Object.assign({}, result, {continue:0}), result]
       }
-      var resultNoRetry = Object.assign({}, result);
-      resultNoRetry.continue = 0
-      return [result,resultNoRetry]//Cycle.Rx.Observable.from([])
-    }).map(log).retry(5).map(log).subscribe();
-  //;.retryWhen(function(errors) {
-    //   return errors.map(log).delay(2000);
-    // })
-    // .mergeAll()map(log).subscribe();//;
+      return [result]
+    }).map(result => {
+      if(result.continue == 1){
+        throw result
+      }
+      return result
+    })
+    .retryWhen(function(errors) {
+      return errors.delay(2000); //.map(log)
+    }).distinctUntilChanged()
+        .map(log).subscribe();
+
+  // const booksStatusRes$ = responses.JSONP
+  //       .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
+  //       .mergeAll().map(log).subscribe();
   // var source = Cycle.Rx.Observable.combineLatest(
   //   source1,
   //   source2,
@@ -89,8 +99,9 @@ function main(responses) {
         hr(),
         ul({className: 'search-results'}, results.map(result =>
           li({className: 'search-result'}, [
-             result.largeImageUrl ? img({src: result.largeImageUrl}) : null,
-              label({className: 'label'}, result.title)
+            result.largeImageUrl ? img({src: result.largeImageUrl}) : null,
+            label({className: 'label'}, result.title),
+            label({className: 'label'}, result.isbn)
             //img({src: result.owner.avatar_url, style: {'width': '40px', 'height': '40px'}}),
             // a({href: result.html_url}, result.name)
           ])
