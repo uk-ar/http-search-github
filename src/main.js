@@ -29,11 +29,8 @@ function main(responses) {
   const books$ = responses.HTTP
     .filter(res$ => res$.request.indexOf(GITHUB_SEARCH_API) === 0)
     .switch()
-        .map(res => res.body.Items)
-        // .map(items => {
-        //   return items.filter(item => item.isbn !== undefined)
-        // }).map(log)
-    .startWith([]);
+    .map(res => res.body.Items)
+    .startWith([])
 
     //const booksWithLib$ = books$.map(results =>
   const LIBRARY_ID = "Tokyo_Fuchu"
@@ -41,10 +38,8 @@ function main(responses) {
     //4834000826
   // let calilRequest$ = Cycle.Rx.Observable.just(HELLO_URL);
   const calilRequest$ = books$.filter(query => query.length > 0)
-  .map(results =>
-    //results[0].isbn
-    results.map(result => result.isbn)
-      ).map(q => HELLO_URL + encodeURI(q)).map(log);
+    .map(books => books.map(book => book.isbn))
+    .map(q => HELLO_URL + encodeURI(q));
 
   const booksStatus$ = responses.JSONP
     .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
@@ -61,17 +56,10 @@ function main(responses) {
     })
     .retryWhen(function(errors) {
       return errors.delay(2000); //.map(log)
-    }).distinctUntilChanged()
-        .map(log).subscribe();
+    }).distinctUntilChanged().map(result=>result.books)
+    .startWith([])
+    .share()
 
-  // const booksStatusRes$ = responses.JSONP
-  //       .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
-  //       .mergeAll().map(log).subscribe();
-  // var source = Cycle.Rx.Observable.combineLatest(
-  //   source1,
-  //   source2,
-  //   function (s1, s2) { return s1 + ', ' + s2; }
-  // )
     // .map(results => {
     //         //return results//.map(result => {return result})
     //         var keys=[];
@@ -84,15 +72,25 @@ function main(responses) {
     //         return keys;
     // })//.map(result => result)
 
-    //.mergeAll();//.subscribe();
-  // const booksWithLib$ = books$.map(results =>
-  //   results.map(result =>
-  //   results.map(result =>
-  //     console.log(result)
-  //   )
-  // ).subscribe()
+  const booksWithStatus$ = books$
+    .combineLatest(booksStatus$,(books,booksStatus)=>{
+      return books.map(book => {
+       if((booksStatus[book.isbn] !== undefined)&&
+          (booksStatus[book.isbn][LIBRARY_ID].libkey !== undefined)){
+         book.exist =
+           Object.keys(booksStatus[book.isbn][LIBRARY_ID].libkey).length !=0;
+         book.status =
+           booksStatus[book.isbn][LIBRARY_ID].libkey;
+         book.reserveUrl =
+           booksStatus[book.isbn][LIBRARY_ID].reserveurl;
+         console.log(book.exist)
+       }
+       return book
+      })
+    })
 
-  const vtree$ = books$.map(results =>
+  const vtree$ = booksWithStatus$
+    .map(results =>
       div([
         label({className: 'label'}, 'Search:'),
         input({className: 'field', attributes: {type: 'text'}}),
@@ -101,13 +99,18 @@ function main(responses) {
           li({className: 'search-result'}, [
             result.largeImageUrl ? img({src: result.largeImageUrl}) : null,
             label({className: 'label'}, result.title),
-            label({className: 'label'}, result.isbn)
+            label({className: 'label'}, result.isbn),
+           result.exist ?
+             a({href: result.reserveUrl}, result.exist.toString()): null,
+           //label({className: 'label'}, result.exist.toString()) : null,
+            //result.status ? label({className: 'label'}, result.status) : null,
             //img({src: result.owner.avatar_url, style: {'width': '40px', 'height': '40px'}}),
             // a({href: result.html_url}, result.name)
           ])
         ))
       ])
     )
+  //books$.connect()
 
   const request$ = searchRequest$//.merge(otherRequest$);
 
