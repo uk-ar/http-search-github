@@ -16,6 +16,7 @@
     "babelify": "6.1.x",
     "beefy": "^2.1.5",
     "browserify": "11.0.1",
+    "lazy.js": "^0.4.2",
     "mkdirp": "0.5.x",
     "rx": "^4.0.6"
   },

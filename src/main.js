@@ -24,6 +24,9 @@ function main(responses) {
     .map(ev => ev.target.value)
     .filter(query => query.length > 1)
     .map(q => GITHUB_SEARCH_API + encodeURI(q));
+  const filterRequest$ = responses.DOM.select('.filter').events('change')
+    .map(ev => ev.target.checked)
+    .startWith(false)
 
   // Convert the stream of HTTP responses to virtual DOM elements.
   const books$ = responses.HTTP
@@ -43,12 +46,9 @@ function main(responses) {
 
   const booksStatus$ = responses.JSONP
     .filter(res$ => res$.request.indexOf(HELLO_URL) === 0)
-        .switch().flatMap(result => {
-      if(result.continue == 1){
-        return [Object.assign({}, result, {continue:0}), result]
-      }
-      return [result]
-    }).map(result => {
+    .switch()
+    .flatMap(result => [Object.assign({}, result, {continue:0}), result])
+    .map(result => {
       if(result.continue == 1){
         throw result
       }
@@ -88,12 +88,16 @@ function main(responses) {
        return book
       })
     })
+    .combineLatest(filterRequest$,(books,filter)=>{
+      return filter ? books.filter(book => book.exist) : books
+    })
 
   const vtree$ = booksWithStatus$
     .map(results =>
       div([
         label({className: 'label'}, 'Search:'),
         input({className: 'field', attributes: {type: 'text'}}),
+        input({className: 'filter', attributes: {type: 'checkbox'}}),
         hr(),
         ul({className: 'search-results'}, results.map(result =>
           li({className: 'search-result'}, [
