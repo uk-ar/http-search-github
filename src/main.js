@@ -11,6 +11,21 @@ function log(thing){
     return thing;
 }
 
+/* function callback(func){
+   console.log ("foo");
+   console.log ("ret" +func.call ({}));
+   }
+
+   callback (() => "bar")
+   var exists = Rx.Observable.fromCallback(callback);
+   var source = callback();
+
+   var subscription = source.subscribe(
+   function (x) { console.log('onNext: %s', x); },
+   function (e) { console.log('onError: %s', e); },
+   function ()  { console.log('onCompleted'); });
+ */
+
 function main(responses) {
   //google books api cannot retreive isbn...
   const GITHUB_SEARCH_API =
